@@ -179,13 +179,6 @@
 		</div>
 
 	</div>
-	<!-- <div id="info">
-			Ferrari 458 Italia model
-			<br><br>
-			<span class="colorPicker"><input id="body-color" type="color" value="#ff0000"></input><br/>Body</span>
-			<span class="colorPicker"><input id="details-color" type="color" value="#ffffff"></input><br/>Details</span>
-			<span class="colorPicker"><input id="glass-color" type="color" value="#ffffff"></input><br/>Glass</span>
-		</div> -->
 	<div class="action-btn-list">
 		<button id="camChangeBtn">
 			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 72 72">
@@ -729,9 +722,11 @@
 
 			// } );
 
-			// Car
+			const dracoLoader = new DRACOLoader();
+            dracoLoader.setDecoderPath('jsm/libs/draco/gltf/');
 
-			const loader = new GLTFLoader();
+            const loader = new GLTFLoader();
+            loader.setDRACOLoader(dracoLoader);
 
 			loader.load('models/van1.glb', function (gltf) {
 				carModel = gltf.scene;
