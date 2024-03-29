@@ -94,6 +94,9 @@
 		}
 
 		#deleteButton {
+			position: absolute;
+			top: 0;
+			right: 0;
 			display: none;
 			justify-content: center;
 			align-items: center;
@@ -101,8 +104,7 @@
 			border: 0;
 			cursor: pointer;
 			color: #333;
-			padding: 8px;
-			margin: 0 10px 8px auto;
+			padding: 5px;
 			opacity: 0.8;
 			transition: opacity ease .3s;
 		}
@@ -131,12 +133,47 @@
 			border-radius: 22px;
 			border: none;
 		}
+
+		.text-center {
+			text-align: center;
+		}
+
+		.mb-3 {
+			margin-bottom: 8px;
+		}
+
+		.text-title1 {
+			color: #333;
+			opacity: 0;
+			animation: textAnimation 2s linear 3s infinite alternate;
+		}
+
+		.text-body1 {
+			color: #333;
+			font-size: 20px;
+		}
+
+		.items-container>div:first-child {
+			position: relative;
+			text-align: center;
+		}
+
+		@keyframes textAnimation {
+			0% {
+				opacity: 0;
+			}
+
+			100% {
+				opacity: 0.7;
+			}
+		}
 	</style>
 </head>
 
 <body>
 	<div class="items-container">
-		<div>
+		<div class="text-center">
+			<h2 class="text-title1">Drag & drop items onto van roof</h2>
 			<button id="deleteButton">
 				<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 40 40">
 					<path fill="#333333"
@@ -177,9 +214,23 @@
 				</div>
 			</div>
 		</div>
-
 	</div>
 	<div class="action-btn-list">
+		<div>
+			<p class="text-body1">$<span id="total_price">3000</span></p>
+		</div>
+		<button class="mb-3" id="imgDownloadBtn">
+			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+				<g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-width="1.5">
+					<path stroke-linejoin="round"
+						d="M21.25 13V8.5a5 5 0 0 0-5-5h-8.5a5 5 0 0 0-5 5v7a5 5 0 0 0 5 5h6.26" />
+					<path stroke-linejoin="round"
+						d="m3.01 17l2.74-3.2a2.2 2.2 0 0 1 2.77-.27a2.2 2.2 0 0 0 2.77-.27l2.33-2.33a4 4 0 0 1 5.16-.43l2.47 1.91M8.01 10.17a1.66 1.66 0 1 0-.02-3.32a1.66 1.66 0 0 0 .02 3.32" />
+					<path stroke-miterlimit="10" d="M18.707 20v-5" />
+					<path stroke-linejoin="round" d="m16.414 17.895l1.967 1.967a.459.459 0 0 0 .652 0L21 17.895" />
+				</g>
+			</svg>
+		</button>
 		<button id="camChangeBtn">
 			<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 72 72">
 				<circle cx="22.258" cy="26.11" r="3" fill="#ffffff" />
@@ -215,7 +266,13 @@
 		import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 		import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
 
-		// import { OBB } from 'three/examples/jsm/math/OBB'
+		let vanPrice = 3000;
+		let airConPrice = 200;
+		let maxxAirPrice = 100;
+		let solar200Price = 150;
+		let solar55Price = 100;
+		let solar30Price = 50;
+		let totalPrice = vanPrice;
 
 		let canvas, camera, scene, renderer;
 		let cameraType = "perspective";
@@ -246,7 +303,7 @@
 		let shodowMesh;
 		let model = null;
 
-		const shadow = new THREE.TextureLoader().load('models/ferrari_ao.png');
+		const shadow = new THREE.TextureLoader().load('models/ford_ao.png');
 
 		let helper;
 		let clock;
@@ -254,6 +311,7 @@
 		let delelteBtn = document.getElementById("deleteButton")
 
 		document.addEventListener('dragstart', function (event) {
+			model = null;
 			vanItem = event.target;
 			//Hide the default drag image
 			event.dataTransfer.setDragImage(document.createElement('div'), 0, 0);
@@ -283,10 +341,34 @@
 					loadItemDirectory = "models/solar_100.glb";
 					break;
 			}
+
+			const dracoLoader = new DRACOLoader();
+			dracoLoader.setDecoderPath('jsm/libs/draco/gltf/');
+
 			const loader = new GLTFLoader();
-			loader.load(loadItemDirectory, function (gltf) {
-				model = gltf.scene;
-			});
+			loader.setDRACOLoader(dracoLoader);
+
+			// loader.load(loadItemDirectory, function (gltf) {
+			// 	model = gltf.scene;
+			// });
+			const loadModel = (url) => {
+				return new Promise((resolve, reject) => {
+					loader.load(url, function (gltf) {
+						resolve(gltf.scene);
+					}, undefined, reject);
+				});
+			};
+
+			// Usage example
+			loadModel(loadItemDirectory)
+				.then((modelItem) => {
+					// Do something with the loaded model
+					model = modelItem;
+					console.log("loaded")
+				})
+				.catch((error) => {
+					console.error('An error occurred while loading the model:', error);
+				});
 		});
 		document.addEventListener('dragover', function (event) {
 			let a = 2 * event.clientX / window.innerWidth - 1;
@@ -310,13 +392,15 @@
 				// if (event.target.id === 'airconditioner') {
 				if (model) {
 					scene.remove(model);
+
+					model.position.x = coords.x;
+					model.position.y = 2.35;
+					// model.position.z = coords.z;
+					model.position.z = 0;
+					scene.add(model);
 				}
 				// else {
-				model.position.x = coords.x;
-				model.position.y = 2.35;
-				// model.position.z = coords.z;
-				model.position.z = 0;
-				scene.add(model);
+
 
 			} else {
 				// Update the position of the clone based on the mouse cursor position
@@ -356,15 +440,22 @@
 				let coords = new THREE.Vector3(locationX, 0, locationZ);
 				scene.worldToLocal(coords);
 
+				const dracoLoader = new DRACOLoader();
+				dracoLoader.setDecoderPath('jsm/libs/draco/gltf/');
+
 				const loader = new GLTFLoader();
+				loader.setDRACOLoader(dracoLoader);
 
 				loader.load(loadItemDirectory, function (gltf) {
-					const solar100Model = gltf.scene;
-					solar100Model.position.x = coords.x;
-					solar100Model.position.y = 2.35;
+					const itemModel = gltf.scene;
+					itemModel.position.x = coords.x;
+					itemModel.position.y = 2.35;
 					// solar100Model.position.z = coords.z;
-					solar100Model.position.z = 0;
-					scene.add(solar100Model);
+					itemModel.position.z = 0;
+					scene.add(itemModel);
+
+					calcPrice(itemModel.children[0].name, true)
+					console.log("itemModel", itemModel.children[0].name)
 				});
 				render();
 			}
@@ -377,40 +468,10 @@
 				doMouseDown(event.clientX, event.clientY);
 			}
 		});
-
 		canvasContainer.addEventListener('mousemove', (event) => {
 			if (selectedFeature) {
 				if (selectedFeature.parent.name !== "van") {
 					if (isDragging) {
-						// Create two box geometries
-						// const geometry1 = new THREE.BoxGeometry();
-						// const geometry2 = new THREE.BoxGeometry();
-
-						// // Create two materials
-						// const material1 = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-						// const material2 = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
-
-						// // Create two mesh objects
-						// const object1 = new THREE.Mesh(geometry1, material1);
-						// const object2 = new THREE.Mesh(geometry2, material2);
-
-						// // Position the objects
-						// object1.position.set(0, 2.5, 0);
-						// object2.position.set(-2, 2.5, 0);
-
-						// // Add objects to the scene
-						// scene.add(object1);
-						// scene.add(object2);
-
-						// // Create bounding boxes for the objects
-						// const selectedFeatureBoundingBox = new THREE.Box3().setFromObject(selectedFeature);
-						// const object1BoundingBox = new THREE.Box3().setFromObject(object1);
-						// const object2BoundingBox = new THREE.Box3().setFromObject(object2);
-
-						// const collidableMeshList = [object1BoundingBox, object2BoundingBox];
-
-						// let collider = false;
-						// collider = collision(selectedFeatureBoundingBox, collidableMeshList);
 
 						let a = 2 * event.clientX / window.innerWidth - 1;
 						let b = 1 - 2 * event.clientY / window.innerHeight;
@@ -425,7 +486,6 @@
 						let locationZ = intersects[0].point.z;
 						let coords = new THREE.Vector3(locationX, 0, locationZ);
 						coords = scene.worldToLocal(coords);
-						// a = Math.min(0.066, Math.max(-2.2, coords.x));
 
 						const boundingBox = new THREE.Box3().setFromObject(selectedFeature);
 						const size = new THREE.Vector3();
@@ -438,25 +498,6 @@
 						a = Math.min(0.428 - selectedFeatureWidth / 2, Math.max(-2.2, coords.x));
 						// b = Math.min(0.32, Math.max(-0.32, coords.z));
 
-						// new THREE.BoxGeometry(3, 0.01, 1.55),
-						// 	new THREE.MeshLambertMaterial({ color: "green" })
-						// );
-						// // workPlane.material.visible = false;
-
-						// workPlane.position.set(-1.08, 2.37, 0);
-
-
-						// if (collider) {
-						// 	let temp = a;
-						// 	console.log("temp", temp);
-						// 	// if (a >= 0)
-						// 	a = Math.min(-0.8, Math.max(-2.2, coords.x));
-						// 	// else
-						// 	// 	a = Math.min(0.1, Math.max(-1, coords.x));
-						// }
-						// else {
-						// 	a = Math.min(0.1, Math.max(-2.2, coords.x));
-						// }
 						selectedFeature.parent.position.x = a;
 						selectedFeature.parent.position.z = 0;
 
@@ -477,10 +518,24 @@
 			if (selectedFeature) {
 				scene.remove(selectedFeature.parent); // Remove the selected feature from the scene
 				this.style.display = "none";
+
+				calcPrice(selectedFeature.name, false)
+				console.log(selectedFeature)
+
 				render();
+
 				selectedFeature = null; // Reset the selected feature
-				// document.getElementById('deleteButton').style.display = 'none'; // Hide the delete button
 			}
+		});
+
+		document.getElementById('imgDownloadBtn').addEventListener('click', function () {
+			// Render the scene
+			renderer.render(scene, camera);
+			var imgData = renderer.domElement.toDataURL();
+			var link = document.createElement('a');
+			link.download = 'scene.png';
+			link.href = imgData;
+			link.click();
 		});
 
 		document.getElementById('camChangeBtn').addEventListener('click', function () {
@@ -504,9 +559,7 @@
 				removeEdgeLines(selectedFeature);
 				selectedFeature = null;
 			}
-			// if (targetForDragging.parent == scene) {
-			scene.remove(targetForDragging);  // I don't want to check for hits on targetForDragging
-			// }
+			scene.remove(targetForDragging);
 			delelteBtn.style.display = "none";
 
 			let a = 2 * x / window.innerWidth - 1;
@@ -570,24 +623,53 @@
 			}
 		}
 
-		function collision(selectedFeatureBoundingBox, collidableMeshList) {
-			// Check for collisions with each bounding box in the array
-			let collisionDetected = false;
-			for (const boundingBox of collidableMeshList) {
-				if (selectedFeatureBoundingBox.intersectsBox(boundingBox)) {
-					collisionDetected = true;
-					break; // Exit the loop if collision is detected
-				}
+		function calcPrice(modelName, flag) {
+			let itemPrice = 0;
+			switch (modelName) {
+				case "air_conditioner":
+					itemPrice = 150;
+					break;
+				case "maxxair":
+					itemPrice = 100;
+					break;
+				case "solar200":
+					itemPrice = 150;
+					break;
+				case "solar55":
+					itemPrice = 100;
+					break;
+				case "solar30":
+					itemPrice = 50;
+					break;
+				default:
+					itemPrice = 0;
 			}
+			if (flag)
+				totalPrice = totalPrice + itemPrice;
+			else
+				totalPrice = totalPrice - itemPrice;
 
-			if (collisionDetected) {
-				console.log("Collision detected!");
-			} else {
-				console.log("No collision");
-			}
-
-			return collisionDetected;
+			document.getElementById("total_price").innerHTML = totalPrice;
 		}
+
+		// function collision(selectedFeatureBoundingBox, collidableMeshList) {
+		// 	// Check for collisions with each bounding box in the array
+		// 	let collisionDetected = false;
+		// 	for (const boundingBox of collidableMeshList) {
+		// 		if (selectedFeatureBoundingBox.intersectsBox(boundingBox)) {
+		// 			collisionDetected = true;
+		// 			break; // Exit the loop if collision is detected
+		// 		}
+		// 	}
+
+		// 	if (collisionDetected) {
+		// 		console.log("Collision detected!");
+		// 	} else {
+		// 		console.log("No collision");
+		// 	}
+
+		// 	return collisionDetected;
+		// }
 
 		function setViewCube() {
 			clock = new THREE.Clock();
@@ -645,20 +727,15 @@
 
 			// Create an OrthographicCamera
 			camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 10000);
-			// camera = new THREE.OrthographicCamera(-window.innerWidth / 340, window.innerWidth / 340, window.innerHeight / 340, -window.innerHeight / 340, 1, 10000);
 			camera.position.set(1, 6, 6);
 			setCameraView();
 
 			// controls.update();
 
 			scene = new THREE.Scene();
-			// scene.environment = new RGBELoader().load('textures/test.hdr');
 			scene.background = new THREE.Color("#ffffff");
-			// scene.environment.mapping = THREE.EquirectangularReflectionMapping;
 
 			setViewCube();
-			// const moonLight = new THREE.DirectionalLight('#1f9ec8', 0.7)
-			// scene.add(moonLight)
 
 			const directionalLight1 = new THREE.DirectionalLight(0xffffff, 1);
 			directionalLight1.position.set(1, 1, 0);
@@ -679,72 +756,15 @@
 			const ambientLight = new THREE.AmbientLight('#ffffff', 1); // color, intensity
 			scene.add(ambientLight);
 
-			// renderer.setClearAlpha(0); // Set the alpha value to 0 for transparency
-			// scene.fog = new THREE.Fog(0x333333, 10, 15);
-			/*grid = new THREE.GridHelper( 20, 40, 0xffffff, 0xffffff );
-			grid.material.opacity = 0.2;
-			grid.material.depthWrite = false;
-			grid.material.transparent = true;
-			scene.add( grid );*/
-
-			// materials
-
-			// const bodyMaterial = new THREE.MeshPhysicalMaterial( {
-			// 	color: 0xff0000, metalness: 1.0, roughness: 0.5, clearcoat: 1.0, clearcoatRoughness: 0.03
-			// } );
-
-			// const detailsMaterial = new THREE.MeshStandardMaterial( {
-			// 	color: 0xffffff, metalness: 1.0, roughness: 0.5
-			// } );
-
-			// const glassMaterial = new THREE.MeshPhysicalMaterial( {
-			// 	color: 0xffffff, metalness: 0.25, roughness: 0, transmission: 1.0
-			// } );
-
-			// const bodyColorInput = document.getElementById( 'body-color' );
-			// bodyColorInput.addEventListener( 'input', function () {
-
-			// 	bodyMaterial.color.set( this.value );
-
-			// } );
-
-			// const detailsColorInput = document.getElementById( 'details-color' );
-			// detailsColorInput.addEventListener( 'input', function () {
-
-			// 	detailsMaterial.color.set( this.value );
-
-			// } );
-
-			// const glassColorInput = document.getElementById( 'glass-color' );
-			// glassColorInput.addEventListener( 'input', function () {
-
-			// 	glassMaterial.color.set( this.value );
-
-			// } );
-
 			const dracoLoader = new DRACOLoader();
-            dracoLoader.setDecoderPath('jsm/libs/draco/gltf/');
+			dracoLoader.setDecoderPath('jsm/libs/draco/gltf/');
 
-            const loader = new GLTFLoader();
-            loader.setDRACOLoader(dracoLoader);
+			const loader = new GLTFLoader();
+			loader.setDRACOLoader(dracoLoader);
 
 			loader.load('models/van1.glb', function (gltf) {
 				carModel = gltf.scene;
-				// carModel.getObjectByName( 'body' ).material = bodyMaterial;
-				// carModel.getObjectByName( 'rim_fl' ).material = detailsMaterial;
-				// carModel.getObjectByName( 'rim_fr' ).material = detailsMaterial;
-				// carModel.getObjectByName( 'rim_rr' ).material = detailsMaterial;
-				// carModel.getObjectByName( 'rim_rl' ).material = detailsMaterial;
-				// carModel.getObjectByName( 'trim' ).material = detailsMaterial;
-				// carModel.getObjectByName( 'glass' ).material = glassMaterial;
-				// wheels.push(
-				// 	// carModel.getObjectByName( 'wheel_fl' ),
-				// 	// carModel.getObjectByName( 'wheel_fr' ),
-				// 	// carModel.getObjectByName( 'wheel_rl' ),
-				// 	carModel.getObjectByName( 'wheel_rr' )
-				// );
 
-				// shadow
 				shodowMesh = new THREE.Mesh(
 					new THREE.PlaneGeometry(2.8, 6.5),
 					new THREE.MeshBasicMaterial({
@@ -786,11 +806,6 @@
 
 		function render() {
 			controls.update();
-			// const time = - performance.now() / 1000;
-			// for (let i = 0; i < wheels.length; i++) {
-			// 	wheels[i].rotation.x = time * Math.PI * 2;
-			// }
-			//grid.position.z = - ( time ) % 1;
 			renderer.render(scene, camera);
 		}
 
